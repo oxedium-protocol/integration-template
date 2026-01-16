@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum TradingVenueError {
+pub enum OxediumVenueError {
     // ---------- Lifecycle ----------
     #[error("venue is not initialized")]
     NotInitialized,

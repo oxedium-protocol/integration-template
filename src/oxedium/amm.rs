@@ -151,7 +151,9 @@ impl TradingVenue for OxediumAmmVenue {
 
             if let Some(vault_account) = account_map.get(&vault_pda) {
                 if vault_account.data.len() >= std::mem::size_of::<Vault>() {
-                    if let Ok(vault) = Vault::deserialize(&mut &vault_account.data[ANCHOR_DISCRIMINATOR_LEN..]) {
+                    if let Ok(vault) =
+                        Vault::deserialize(&mut &vault_account.data[ANCHOR_DISCRIMINATOR_LEN..])
+                    {
                         self.vaults.insert(*mint, vault);
                     } else {
                         println!(">>> warning: failed to deserialize vault {:?}", vault_pda);
@@ -227,15 +229,17 @@ impl TradingVenue for OxediumAmmVenue {
             TradingVenueError::InvalidMint(ErrorInfo::Pubkey(request.output_mint))
         })?;
 
-        let price_in_data = self.oracles.get(&vault_in.pyth_price_account)
+        let price_in_data = self
+            .oracles
+            .get(&vault_in.pyth_price_account)
             .ok_or(TradingVenueError::OracleNotFound)?;
-        print!("PRICE IN: {}\n", price_in_data.price_message.price);
 
-        let price_out_data = self.oracles.get(&vault_out.pyth_price_account)
+        let price_out_data = self
+            .oracles
+            .get(&vault_out.pyth_price_account)
             .ok_or(TradingVenueError::OracleNotFound)?;
-        print!("PRICE OUT: {}\n", price_out_data.price_message.price);
 
-        let result = compute_swap_math(
+        let full_result = compute_swap_math(
             request.amount,
             price_in_data.price_message.price as u64,
             price_out_data.price_message.price as u64,
@@ -244,19 +248,57 @@ impl TradingVenue for OxediumAmmVenue {
             vault_in,
             vault_out,
             &self.treasury,
-        ).map_err(|e| TradingVenueError::MathError(ErrorInfo::String(format!("{e:?}"))))?;
+        )
+        .map_err(|e| TradingVenueError::MathError(ErrorInfo::String(format!("{e:?}"))))?;
 
-        let mut not_enough_liquidity = false;
-        if result.net_amount_out > vault_out.current_liquidity {
-            not_enough_liquidity = true
+        if full_result.raw_amount_out <= vault_out.current_liquidity {
+            return Ok(QuoteResult {
+                input_mint: request.input_mint,
+                output_mint: request.output_mint,
+                amount: request.amount,
+                expected_output: full_result.net_amount_out,
+                not_enough_liquidity: false,
+            });
+        }
+
+        let mut low: u64 = 0;
+        let mut high: u64 = request.amount;
+        let mut best_amount_in: u64 = 0;
+        let mut best_expected_out: u64 = 0;
+
+        while low <= high {
+            let mid = (low + high) / 2;
+
+            let res = compute_swap_math(
+                mid,
+                price_in_data.price_message.price as u64,
+                price_out_data.price_message.price as u64,
+                in_mint.decimals,
+                out_mint.decimals,
+                vault_in,
+                vault_out,
+                &self.treasury,
+            )
+            .map_err(|e| TradingVenueError::MathError(ErrorInfo::String(format!("{e:?}"))))?;
+
+            if res.raw_amount_out <= vault_out.current_liquidity {
+                best_amount_in = mid;
+                best_expected_out = res.net_amount_out;
+                low = mid + 1;
+            } else {
+                if mid == 0 {
+                    break;
+                }
+                high = mid - 1;
+            }
         }
 
         Ok(QuoteResult {
             input_mint: request.input_mint,
             output_mint: request.output_mint,
-            amount: request.amount,
-            expected_output: result.net_amount_out,
-            not_enough_liquidity: not_enough_liquidity,
+            amount: best_amount_in,
+            expected_output: best_expected_out,
+            not_enough_liquidity: true,
         })
     }
 
@@ -271,7 +313,8 @@ impl TradingVenue for OxediumAmmVenue {
         let treasury_pda = Pubkey::find_program_address(
             &[OXEDIUM_SEED.as_bytes(), TREASURY_SEED.as_bytes()],
             &OXEDIUM_AMM_PROGRAM_ID,
-        ).0;
+        )
+        .0;
 
         let treasury_in_ata = get_associated_token_address(&treasury_pda, &request.input_mint);
         let treasury_out_ata = get_associated_token_address(&treasury_pda, &request.output_mint);
@@ -279,15 +322,19 @@ impl TradingVenue for OxediumAmmVenue {
         let vault_in = Pubkey::find_program_address(
             &[VAULT_SEED.as_bytes(), request.input_mint.as_ref()],
             &OXEDIUM_AMM_PROGRAM_ID,
-        ).0;
+        )
+        .0;
 
         let vault_out = Pubkey::find_program_address(
             &[VAULT_SEED.as_bytes(), request.output_mint.as_ref()],
             &OXEDIUM_AMM_PROGRAM_ID,
-        ).0;
+        )
+        .0;
 
-        let oracle_in = oracle_for_mint(&request.input_mint).ok_or(TradingVenueError::OracleNotFound)?;
-        let oracle_out = oracle_for_mint(&request.output_mint).ok_or(TradingVenueError::OracleNotFound)?;
+        let oracle_in =
+            oracle_for_mint(&request.input_mint).ok_or(TradingVenueError::OracleNotFound)?;
+        let oracle_out =
+            oracle_for_mint(&request.output_mint).ok_or(TradingVenueError::OracleNotFound)?;
 
         let accounts = vec![
             AccountMeta::new(user, true),
@@ -313,9 +360,10 @@ impl TradingVenue for OxediumAmmVenue {
 
         SwapIxData {
             amount_in: request.amount,
-            min_amount_out: 1,
-        }.serialize(&mut data)
-            .map_err(|_| TradingVenueError::DeserializationError)?;
+            min_amount_out: 0,
+        }
+        .serialize(&mut data)
+        .map_err(|e| TradingVenueError::SerializationFailed(ErrorInfo::String(format!("{e:?}"))))?;
 
         Ok(Instruction {
             program_id: OXEDIUM_AMM_PROGRAM_ID,

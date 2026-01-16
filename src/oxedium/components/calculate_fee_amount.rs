@@ -1,4 +1,4 @@
-use crate::oxedium::utils::TradingVenueError;
+use crate::oxedium::utils::OxediumVenueError;
 
 /// Calculates the resulting amount after applying LP, protocol, and partner fees.
 /// 
@@ -14,7 +14,7 @@ pub fn calculate_fee_amount(
     amount: u64,
     lp_fee_bps: u64,
     protocol_fee_bps: u64,
-) -> Result<(u64, u64, u64), TradingVenueError> {
+) -> Result<(u64, u64, u64), OxediumVenueError> {
 
     // Calculate LP fee from the original amount
     let lp_fee = fee(amount, lp_fee_bps)?;
@@ -26,7 +26,7 @@ pub fn calculate_fee_amount(
     let amount_after_fee = amount
         .checked_sub(lp_fee)
         .and_then(|v| v.checked_sub(protocol_fee))
-        .ok_or(TradingVenueError::SwapMathError)?;
+        .ok_or(OxediumVenueError::SwapMathError)?;
 
     // Return the remaining amount and all individual fees
     Ok((amount_after_fee, lp_fee, protocol_fee))
@@ -40,12 +40,12 @@ pub fn calculate_fee_amount(
 ///
 /// # Returns
 /// * `Result<u64, TyrbineError>` - Calculated fee, rounded up to ensure at least 1 unit if applicable
-fn fee(amount: u64, bps: u64) -> Result<u64, TradingVenueError> {
+fn fee(amount: u64, bps: u64) -> Result<u64, OxediumVenueError> {
     if bps == 0 || amount == 0 {
         return Ok(0);
     }
     let f = amount
-        .checked_mul(bps).ok_or(TradingVenueError::SwapMathError)?
+        .checked_mul(bps).ok_or(OxediumVenueError::SwapMathError)?
         / 10_000;
     Ok(f.max(1).min(amount)) // at least 1, but no more than amount
 }

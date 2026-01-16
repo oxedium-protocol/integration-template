@@ -1,4 +1,4 @@
-use crate::oxedium::{components::{calculate_fee_amount, fees_setting, raw_amount_out}, states::{Treasury, Vault}, utils::TradingVenueError};
+use crate::oxedium::{components::{calculate_fee_amount, fees_setting, raw_amount_out}, states::{Treasury, Vault}, utils::OxediumVenueError};
 
 pub struct SwapMathResult {
     pub swap_fee_bps: u64,
@@ -17,7 +17,7 @@ pub fn compute_swap_math(
     vault_in: &Vault,
     vault_out: &Vault,
     treasury: &Treasury,
-) -> Result<SwapMathResult, TradingVenueError> {
+) -> Result<SwapMathResult, OxediumVenueError> {
     let swap_fee_bps = fees_setting(&vault_in, &vault_out);
     let protocol_fee_bps = treasury.fee_bps;
 
@@ -30,7 +30,7 @@ pub fn compute_swap_math(
     )?;
 
     if swap_fee_bps + protocol_fee_bps > 10_000 {
-        return Err(TradingVenueError::SwapMathError);
+        return Err(OxediumVenueError::SwapMathError);
     }
 
     let (after_fee, lp_fee, protocol_fee) =
@@ -41,7 +41,7 @@ pub fn compute_swap_math(
         )?;
     
     if vault_out.current_liquidity < (after_fee + lp_fee + protocol_fee) {
-        return Err(TradingVenueError::SwapMathError);
+        return Err(OxediumVenueError::SwapMathError);
     }
 
     Ok(SwapMathResult {
