@@ -133,6 +133,11 @@ pub enum TradingVenueError {
     #[error("Failed to deserialize account data: {0}")]
     DeserializationFailed(ErrorInfo),
 
+
+    /// Mint or pool account could not be serialized into expected data structures.
+    #[error("Failed to Serialize account data: {0}")]
+    SerializationFailed(ErrorInfo),
+
     /// Failed to obtain a lock on the account cache (unexpected threading issue).
     #[error("Failed to unlock cache")]
     CacheUnlockFailed,
@@ -195,8 +200,8 @@ pub enum TradingVenueError {
     MathError(ErrorInfo),
 
     /// Generic deserialization failure.
-    #[error("Deserialization Error: {0}")]
-    DeserializationError(ErrorInfo),
+    #[error("Deserialization Error")]
+    DeserializationError,
 
     /// A pool exists on-chain but is inactive or not usable for routing.
     #[error("Pool {0} from protocol {1} is inactive")]
@@ -205,4 +210,12 @@ pub enum TradingVenueError {
     /// Error produced by Titan’s account cache layer.
     #[error("Account cache error: {0}")]
     AccountCacheError(#[from] AccountCacheError),
+
+    /// Oracle not found
+    #[error("Oracle not found")]
+    OracleNotFound,
+
+    /// Oracle not found
+    #[error("Vault not found: {0}")]
+    VaultNotFound(ErrorInfo)
 }

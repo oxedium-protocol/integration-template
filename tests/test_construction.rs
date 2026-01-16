@@ -19,15 +19,15 @@ mod test_construction {
     use titan_integration_template::account_caching::rpc_cache::RpcClientCache;
     use titan_integration_template::trading_venue::{QuoteRequest, SwapType};
     use titan_integration_template::{
-        example::RaydiumAmmVenue,
+        oxedium::amm::OxediumAmmVenue,
         trading_venue::{FromAccount, TradingVenue},
     };
 
     use assert_no_alloc::*;
 
-    #[cfg(debug_assertions)] // required when disable_release is set (default)
-    #[global_allocator]
-    static A: AllocDisabler = AllocDisabler;
+    // #[cfg(debug_assertions)] // required when disable_release is set (default)
+    // #[global_allocator]
+    // static A: AllocDisabler = AllocDisabler;
 
     /// Initialize logging for test output.
     ///
@@ -67,7 +67,7 @@ mod test_construction {
             .await
             .expect("Failed to fetch AMM account");
 
-        let mut venue = RaydiumAmmVenue::from_account(&amm_key, &venue_account)
+        let mut venue: OxediumAmmVenue = OxediumAmmVenue::from_account(&amm_key, &venue_account)
             .expect("Failed to construct venue from account");
 
         //

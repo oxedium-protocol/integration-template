@@ -22,10 +22,7 @@ use std::fmt::Display;
 pub enum PoolProtocol {
     /// Example/custom protocol — integrators should rename or replace this
     /// with their own protocol name.
-    YourPoolProtocol,
-
-    /// Raydium’s AMM (x*y=k) pools on Solana.
-    RaydiumAMM,
+    Oxedium,
 }
 
 impl Display for PoolProtocol {
@@ -44,8 +41,7 @@ impl From<PoolProtocol> for String {
     /// exposes protocol metadata via API.
     fn from(protocol: PoolProtocol) -> Self {
         match protocol {
-            PoolProtocol::YourPoolProtocol => "YourPoolProtocol".to_string(),
-            PoolProtocol::RaydiumAMM => "RaydiumAMM".to_string(),
+            PoolProtocol::Oxedium => "Oxedium".to_string(),
         }
     }
 }

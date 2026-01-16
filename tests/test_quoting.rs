@@ -35,11 +35,11 @@ mod simulations {
 
     use std::env;
 
-    use titan_integration_template::example::RAYDIUM_AMM_PROGRAM_ID;
+    use titan_integration_template::oxedium::amm::OXEDIUM_AMM_PROGRAM_ID;
     use titan_integration_template::trading_venue::SwapType;
 
     use titan_integration_template::{
-        account_caching::AccountsCache, example::RaydiumAmmVenue, trading_venue::QuoteRequest,
+        account_caching::AccountsCache, oxedium::amm::OxediumAmmVenue, trading_venue::QuoteRequest,
     };
     use titan_integration_template::{
         account_caching::rpc_cache::RpcClientCache,
@@ -64,13 +64,13 @@ mod simulations {
 
         // These two programs appear to be dependencies required by Raydium
         // CLMM math or helper operations.
-        let spl_calc_program = pubkey!("sspUE1vrh7xRoXxGsg7vR1zde2WdGtJRbyK9uRumBDy");
+        let spl_calc_program = pubkey!("oxe1SKL52HMLBDT2JQvdxscA1LbVc4EEwwSdNZcnDVH");
         let spl_calc_path = format!("programs/{}.so", spl_calc_program);
         litesvm
             .add_program_from_file(spl_calc_program, spl_calc_path)
             .unwrap();
 
-        let spl_calc_program_2 = pubkey!("ssmbu3KZxgonUtjEMCKspZzxvUQCxAFnyh1rcHUeEDo");
+        let spl_calc_program_2 = pubkey!("oxe1SKL52HMLBDT2JQvdxscA1LbVc4EEwwSdNZcnDVH");
         let spl_calc_path_2 = format!("programs/{}.so", spl_calc_program_2);
         litesvm
             .add_program_from_file(spl_calc_program_2, spl_calc_path_2)
@@ -231,7 +231,7 @@ mod simulations {
 
         // Build venue + load pool state
         let cache = RpcClientCache::new(rpc);
-        let mut venue = RaydiumAmmVenue::from_account(&amm_key, &venue_account).unwrap();
+        let mut venue = OxediumAmmVenue::from_account(&amm_key, &venue_account).unwrap();
         venue.update_state(&cache).await.unwrap();
 
         // Setup simulation VM
@@ -240,8 +240,8 @@ mod simulations {
         // Load Raydium AMM program binary
         litesvm
             .add_program_from_file(
-                RAYDIUM_AMM_PROGRAM_ID,
-                "programs/675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8.so",
+                OXEDIUM_AMM_PROGRAM_ID,
+                "programs/oxe1SKL52HMLBDT2JQvdxscA1LbVc4EEwwSdNZcnDVH.so",
             )
             .unwrap();
 
@@ -278,6 +278,7 @@ mod simulations {
                     sim_quote_request(&venue, &cache, request.clone(), &mut litesvm, &keypair)
                         .await;
                 let quote = venue.quote(request).unwrap();
+                print!("Quote: {:?}", quote);
 
                 log::debug!(
                     "Boundary = {}\nSimulated = {}\nOff-chain quote = {}\nDelta = {}",
@@ -308,15 +309,15 @@ mod simulations {
         let venue_account = rpc.get_account(&amm_key).await.unwrap();
 
         let cache = RpcClientCache::new(rpc);
-        let mut venue = RaydiumAmmVenue::from_account(&amm_key, &venue_account).unwrap();
+        let mut venue = OxediumAmmVenue::from_account(&amm_key, &venue_account).unwrap();
         venue.update_state(&cache).await.unwrap();
 
         // Setup simulation VM
         let (mut litesvm, keypair) = setup_litesvm();
         litesvm
             .add_program_from_file(
-                RAYDIUM_AMM_PROGRAM_ID,
-                "programs/675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8.so",
+                OXEDIUM_AMM_PROGRAM_ID,
+                "programs/oxe1SKL52HMLBDT2JQvdxscA1LbVc4EEwwSdNZcnDVH.so",
             )
             .unwrap();
 
@@ -391,7 +392,7 @@ mod simulations {
             .await
             .expect("Failed to fetch AMM account");
 
-        let mut venue = RaydiumAmmVenue::from_account(&amm_key, &venue_account)
+        let mut venue = OxediumAmmVenue::from_account(&amm_key, &venue_account)
             .expect("Failed to construct venue from account");
 
         //
@@ -480,7 +481,7 @@ mod simulations {
             .await
             .expect("Failed to fetch AMM account");
 
-        let mut venue = RaydiumAmmVenue::from_account(&amm_key, &venue_account)
+        let mut venue = OxediumAmmVenue::from_account(&amm_key, &venue_account)
             .expect("Failed to construct venue from account");
 
         //
